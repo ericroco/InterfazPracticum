@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeltaMovies</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Press Start 2P', sans-serif;
+            margin: 0;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .search-bar {
+            text-align: center;
+            margin: 20px;
+        }
+
+        .search-bar input {
+            width: 60%;
+            padding: 10px;
+            font-size: 1em;
+        }
+
+        .search-bar button {
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+
+        #moviesContainer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .movie-card {
+            background-color: #333;
+            padding: 15px;
+            border-radius: 10px;
+            width: 250px;
+            text-align: center;
+            color: white;
+            cursor: pointer;
+        }
+
+        .movie-card img {
+            max-width: 100%;
+            border-radius: 5px;
+        }
+
+        .movie-title {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+
+        .movie-genres {
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        /* Modal Styles */
+        #movieModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            display: flex;
+            background-color: #222;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 800px;
+        }
+
+        /* Left section for poster, rating, and trailer */
+        .modal-left {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 40%;
+            margin-right: 20px;
+        }
+
+        .modal-left img {
+            max-width: 100%;
+            border-radius: 10px;
+        }
+
+        .rating {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+
+        .trailer-button {
+            background-color: #555;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 10px;
+        }
+
+        .trailer-button:hover {
+            background-color: #777;
+        }
+
+        /* Right section for title, synopsis, and director */
+        .modal-right {
+            width: 60%;
+        }
+
+        .modal-title {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .modal-synopsis {
+            font-size: 1em;
+            line-height: 1.5;
+            margin: 10px 0;
+        }
+
+        .modal-director {
+            font-size: 1.1em;
+            margin-top: 20px;
+            color: #aaa;
+        }
+
+        .close-button {
+            background-color: #555;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 1em;
+            margin-top: 20px;
+            align-self: flex-end;
+        }
+
+        .close-button:hover {
+            background-color: #777;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>DeltaMovies</h1>
+        <img src="imagenes/rouxls-kaart.gif" alt="Logo">
+    </header>
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search for a movie...">
+        <button onclick="searchMovies()">Search</button>
+    </div>
+    <div id="moviesContainer">
+        <!-- Movie cards will be added here -->
+    </div>
+    <div id="movieModal" class="modal">
+        <div class="modal-content">
+            <!-- Sección izquierda -->
+            <div class="modal-left">
+                <div class="rating" id="modalRating">Rating: 8.5</div>
+                <img id="modalPoster" src="imagenes/noFound.png" alt="Poster">
+                <button class="trailer-button" onclick="openTrailer()">Watch Trailer</button>
+            </div>
+            <!-- Sección derecha -->
+            <div class="modal-right">
+                <div class="modal-title" id="modalTitle">Movie Title</div>
+                <div class="modal-synopsis" id="modalOverview">
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut hendrerit, eros in tincidunt laoreet.
+                </div>
+                <div class="modal-director" id="modalDirector">Director: Unknown</div>
+                <button class="close-button" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.1/papaparse.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const moviesPath = 'DataBases/movies_clean_updated.csv';
+            const genresPath = 'TablasAdicionales/genres_table.csv';
+            const crewPath = 'TablasAdicionales/crew_Info.csv';
+
+            // Cargar los tres archivos CSV
+            Promise.all([
+                fetch(moviesPath).then(response => response.text()),
+                fetch(genresPath).then(response => response.text()),
+                fetch(crewPath).then(response => response.text())
+            ]).then(([moviesData, genresData, crewData]) => {
+                const genresMap = createGenresMap(genresData);
+                const directorsMap = createDirectorsMap(crewData);
+
+                Papa.parse(moviesData, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function (results) {
+                        const movies = results.data;
+                        populateInterface(movies, genresMap, directorsMap);
+                    }
+                });
+            });
+        });
+
+        // Crear un mapa de géneros
+        function createGenresMap(genresData) {
+            const genres = Papa.parse(genresData, {
+                header: true,
+                skipEmptyLines: true
+            }).data;
+            const genresMap = {};
+            genres.forEach(genre => {
+                genresMap[genre.genre_id] = genre.genre_name;
+            });
+            return genresMap;
+        }
+
+        // Crear un mapa de directores
+        function createDirectorsMap(crewData) {
+            const crew = Papa.parse(crewData, {
+                header: true,
+                skipEmptyLines: true
+            }).data;
+            const directorsMap = {};
+            crew.forEach(person => {
+                if (person.job.trim().toLowerCase() === 'director') {
+                    directorsMap[person.movie_id] = person.name;
+                }
+            });
+            return directorsMap;
+        }
+
+        const imageCount = 14;
+        const images = [];
+        for (let i = 0; i <= imageCount; i++) {
+            images.push(`imagenes/placeholders/${i}.jpg`);
+        }
+        images.push('imagenes/noFound.png');
+
+        function getRandomImage() {
+            const randomIndex = Math.floor(Math.random() * images.length);
+            return images[randomIndex];
+        }
+
+        // Población de la interfaz
+        function populateInterface(movies, genresMap, directorsMap) {
+            const container = document.getElementById('moviesContainer');
+            container.innerHTML = '';
+            movies.forEach(movie => {
+                const genreNames = movie.genres.split(',')
+                    .map(genreId => genresMap[genreId.trim()] || 'Unknown Genre')
+                    .join(', ');
+
+                const posterPath = getRandomImage();
+                const director = directorsMap[movie.id] || 'Unknown Director';
+
+                const card = document.createElement('div');
+                card.className = 'movie-card';
+                card.innerHTML = `
+                <img src="${posterPath}" alt="Poster">
+                <div class="movie-title">${movie.title}</div>
+                <div class="movie-genres">${genreNames}</div>
+            `;
+                card.addEventListener('click', () => openModal(movie.title, movie.overview, posterPath, director, movie.vote_average, movie.youtube_trailer_id));
+                container.appendChild(card);
+            });
+        }
+
+        // Abrir el modal
+        function openModal(title, overview, posterPath, director, rating, youtubeTrailerId) {
+            document.getElementById('modalPoster').src = posterPath;
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalOverview').textContent = overview;
+            document.getElementById('modalDirector').textContent = `Director: ${director}`;
+            document.getElementById('modalRating').textContent = `Rating: ${rating || 'N/A'}`;
+
+            // Configurar el botón para redirigir al tráiler
+            const trailerButton = document.querySelector('.trailer-button');
+            if (youtubeTrailerId) {
+                trailerButton.onclick = () => window.open(`https://www.youtube.com/watch?v=QbvvHsn6sgQ`, '_blank');
+                trailerButton.style.display = 'inline-block';
+            } else {
+                trailerButton.onclick = () => window.open(`https://www.youtube.com/watch?v=QbvvHsn6sgQ`, '_blank');
+                trailerButton.style.display = 'inline-block';
+            }
+
+            document.getElementById('movieModal').style.display = 'flex';
+        }
+
+        // Cerrar el modal
+        function closeModal() {
+            document.getElementById('movieModal').style.display = 'none';
+        }
+
+        // Búsqueda de películas
+        function searchMovies() {
+            const input = document.getElementById('searchInput').value.toLowerCase();
+            const cards = document.querySelectorAll('.movie-card');
+            cards.forEach(card => {
+                const title = card.querySelector('.movie-title').textContent.toLowerCase();
+                card.style.display = title.includes(input) ? 'block' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>
