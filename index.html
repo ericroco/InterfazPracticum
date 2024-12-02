@@ -175,6 +175,7 @@
         <button onclick="searchMovies()">Search</button>
     </div>
     <div id="moviesContainer"></div>
+    <div id="paginationContainer" style="text-align: center; margin-top: 20px;"></div>
     <div id="movieModal" class="modal">
         <div class="modal-content">
             <div class="modal-left">
@@ -193,6 +194,10 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.1/papaparse.min.js"></script>
     <script>
+        let allMovies = []; // Almacenar todas las películas cargadas
+        let currentPage = 1; // Página actual
+        const itemsPerPage = 30; // Películas por página
+        
         const moviesPath = './DataBases/movies_clean_updated.csv';
         const genresPath = './TablasAdicionales/genres_table.csv';
         const crewPath = './TablasAdicionales/crew_Info.csv';
@@ -206,12 +211,12 @@
                 const genresMap = createGenresMap(genresData);
                 const directorsMap = createDirectorsMap(crewData);
 
-                Papa.parse(moviesData, {
+                    Papa.parse(moviesData, {
                     header: true,
                     skipEmptyLines: true,
                     complete: function (results) {
-                        const movies = results.data;
-                        populateInterface(movies, genresMap, directorsMap);
+                        allMovies = results.data; // Guardar todas las películas
+                        displayPage(currentPage, genresMap, directorsMap); // Mostrar la primera página
                     }
                 });
             });
@@ -258,10 +263,10 @@
         }
 
         // Población de la interfaz
-        function populateInterface(movies, genresMap, directorsMap) {
+        function populateInterface(moviesSubset, genresMap, directorsMap) {
             const container = document.getElementById('moviesContainer');
             container.innerHTML = '';
-            movies.forEach(movie => {
+            moviesSubset.forEach(movie => {
                 const genreNames = movie.genres.split(',')
                     .map(genreId => genresMap[genreId.trim()] || 'Unknown Genre')
                     .join(', ');
@@ -272,13 +277,46 @@
                 const card = document.createElement('div');
                 card.className = 'movie-card';
                 card.innerHTML = `
-                <img src="${posterPath}" alt="Poster">
-                <div class="movie-title">${movie.title}</div>
-                <div class="movie-genres">${genreNames}</div>
-            `;
+            <img src="${posterPath}" alt="Poster">
+            <div class="movie-title">${movie.title}</div>
+            <div class="movie-genres">${genreNames}</div>
+        `;
                 card.addEventListener('click', () => openModal(movie.title, movie.overview, posterPath, director, movie.vote_average, movie.youtube_trailer_id));
                 container.appendChild(card);
             });
+        }
+
+        function displayPage(page, genresMap, directorsMap) {
+            const startIndex = (page - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const moviesToShow = allMovies.slice(startIndex, endIndex);
+            populateInterface(moviesToShow, genresMap, directorsMap);
+            createPaginationButtons(genresMap, directorsMap);
+        }
+
+        function createPaginationButtons(genresMap, directorsMap) {
+            const totalPages = Math.ceil(allMovies.length / itemsPerPage);
+            const paginationContainer = document.getElementById('paginationContainer');
+            paginationContainer.innerHTML = ''; // Limpiar contenedor
+
+            for (let i = 1; i <= totalPages; i++) {
+                const button = document.createElement('button');
+                button.textContent = i;
+                button.style.margin = '5px';
+                button.style.padding = '10px 15px';
+                button.style.cursor = 'pointer';
+                button.style.backgroundColor = i === currentPage ? '#444' : '#333';
+                button.style.color = 'white';
+                button.style.border = 'none';
+                button.style.borderRadius = '5px';
+
+                button.addEventListener('click', () => {
+                    currentPage = i;
+                    displayPage(currentPage, genresMap, directorsMap); // Cambiar página
+                });
+
+                paginationContainer.appendChild(button);
+            }
         }
 
         // Abrir el modal
