@@ -70,7 +70,6 @@
             color: #aaa;
         }
 
-        /* Modal Styles */
         #movieModal {
             display: none;
             position: fixed;
@@ -94,7 +93,6 @@
             max-width: 800px;
         }
 
-        /* Left section for poster, rating, and trailer */
         .modal-left {
             display: flex;
             flex-direction: column;
@@ -128,7 +126,6 @@
             background-color: #777;
         }
 
-        /* Right section for title, synopsis, and director */
         .modal-right {
             width: 60%;
         }
@@ -171,29 +168,23 @@
 <body>
     <header>
         <h1>DeltaMovies</h1>
-        <img src="imagenes/rouxls-kaart.gif" alt="Logo">
+        <img src="./imagenes/rouxls-kaart.gif" alt="Logo">
     </header>
     <div class="search-bar">
         <input type="text" id="searchInput" placeholder="Search for a movie...">
         <button onclick="searchMovies()">Search</button>
     </div>
-    <div id="moviesContainer">
-        <!-- Movie cards will be added here -->
-    </div>
+    <div id="moviesContainer"></div>
     <div id="movieModal" class="modal">
         <div class="modal-content">
-            <!-- Sección izquierda -->
             <div class="modal-left">
                 <div class="rating" id="modalRating">Rating: 8.5</div>
-                <img id="modalPoster" src="imagenes/noFound.png" alt="Poster">
-                <button class="trailer-button" onclick="openTrailer()">Watch Trailer</button>
+                <img id="modalPoster" src="./imagenes/noFound.png" alt="Poster">
+                <button class="trailer-button" id="trailerButton">Watch Trailer</button>
             </div>
-            <!-- Sección derecha -->
             <div class="modal-right">
                 <div class="modal-title" id="modalTitle">Movie Title</div>
-                <div class="modal-synopsis" id="modalOverview">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut hendrerit, eros in tincidunt laoreet.
-                </div>
+                <div class="modal-synopsis" id="modalOverview"></div>
                 <div class="modal-director" id="modalDirector">Director: Unknown</div>
                 <button class="close-button" onclick="closeModal()">Close</button>
             </div>
@@ -202,12 +193,11 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.1/papaparse.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const moviesPath = 'DataBases/movies_clean_updated.csv';
-            const genresPath = 'TablasAdicionales/genres_table.csv';
-            const crewPath = 'TablasAdicionales/crew_Info.csv';
+        const moviesPath = './DataBases/movies_clean_updated.csv';
+        const genresPath = './TablasAdicionales/genres_table.csv';
+        const crewPath = './TablasAdicionales/crew_Info.csv';
 
-            // Cargar los tres archivos CSV
+         // Cargar los tres archivos CSV
             Promise.all([
                 fetch(moviesPath).then(response => response.text()),
                 fetch(genresPath).then(response => response.text()),
